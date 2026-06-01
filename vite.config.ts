@@ -8,6 +8,26 @@ export default defineConfig({
   server: {
     port: 5180,
     strictPort: false,
+    // The CMC keyless feed sends no CORS header, so the browser can't hit it
+    // directly. Proxy '/cmc' → the keyless base server-side (no CORS in play).
+    proxy: {
+      '/cmc': {
+        target: 'https://pro-api.coinmarketcap.com/trial-pro-api',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (p) => p.replace(/^\/cmc/, ''),
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/cmc': {
+        target: 'https://pro-api.coinmarketcap.com/trial-pro-api',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (p) => p.replace(/^\/cmc/, ''),
+      },
+    },
   },
   build: {
     target: 'es2020',

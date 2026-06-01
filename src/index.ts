@@ -30,3 +30,9 @@ export { createRainRenderer } from './core/renderer';
 export type { RainRenderer, RainRendererOptions } from './core/renderer';
 export { makeDraggable } from './core/interaction';
 export { VERT, FRAG } from './core/shaders';
+
+// Optional market source: CoinMarketCap keyless public feed (15-min refresh by
+// default). Not used by the core — import it explicitly to drive the visuals
+// with real CMC data. See ./sources/cmc for the CORS/proxy note.
+export { createCmcMarketSource } from './sources/cmc';
+export type { CmcSourceOptions, CmcMarket } from './sources/cmc';

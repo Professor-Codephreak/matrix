@@ -6,11 +6,13 @@
 
 import '../src/styles/matrix.scss';
 import './demo.css';
-import { createMatrixEntry } from '../src/index';
-import { createMockMarket } from './mock-data';
+import { createMatrixEntry, createCmcMarketSource } from '../src/index';
 
 const app = document.getElementById('app')!;
-const market = createMockMarket();
+// Real data from CoinMarketCap's keyless public feed, refreshed every 15 min.
+// The dev server proxies '/cmc' → the keyless base (see vite.config.ts) so the
+// browser's CORS check is satisfied.
+const market = createCmcMarketSource({ baseUrl: '/cmc', refreshMs: 15 * 60 * 1000 });
 
 const { element } = createMatrixEntry({
   market: market.source,
