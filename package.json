@@ -1,0 +1,24 @@
+{
+  "name": "matrix-fx",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Standalone WebGL Matrix digital-rain entry experience — rain shader, market-data overlays, and a pill entry shell with auth/navigation injected. Project-agnostic; zero wallet dependencies.",
+  "license": "MIT",
+  "keywords": ["matrix", "webgl", "shader", "digital-rain", "vanilla-ts"],
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles": "./src/styles/matrix.scss"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "sass": "^1.89.2",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}
