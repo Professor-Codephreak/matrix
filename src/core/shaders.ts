@@ -26,6 +26,7 @@ uniform sampler2D u_glyphs;
 uniform sampler2D u_noise;
 uniform float u_glitch;   // 0 = normal, 0-1 = glitch intensity
 uniform float u_spin;     // 0-2π spin rotation angle
+uniform float u_swirl;    // 0 = rain, 1 = the swirl is a blockchain chain
 
 // ── Text: sample a random character from the 16x16 glyph atlas ──
 // Faithful to Shadertoy ldccW4 text() function
@@ -71,6 +72,61 @@ vec3 rain(vec2 fragCoord) {
   return rainColor / (y * 20.0);
 }
 
+// ── Blockchain chain ──────────────────────────────────────────────
+// A chain link rendered as the outline of a stadium (capsule): the metal
+// ring of one link of a chain. Negative inside the metal, positive outside.
+float linkOutline(vec2 q, float halfLen, float rad, float thick) {
+  q.x -= clamp(q.x, -halfLen, halfLen);   // collapse to the segment core
+  float d = length(q) - rad;              // filled capsule
+  return abs(d) - thick;                  // hollow it into a ring
+}
+
+// Concentric rings of interlocking links, rotating by rot. As the rain's
+// bullet-time drag / glitch-spin winds up, this is the swirl — a blockchain
+// of connected links coiling around the screen centre. Returns glowing colour.
+vec3 chainSwirl(vec2 fc, vec2 res, float rot) {
+  float scl = min(res.x, res.y);
+  vec2 p = (fc - res * 0.5) / scl;        // centred, ~[-0.5, 0.5]
+  float r = length(p);
+
+  float best = 1e9;
+  float bestIdx = 0.0;
+  const int RINGS = 4;
+  for (int k = 0; k < RINGS; k++) {
+    float fk = float(k);
+    float R = 0.13 + fk * 0.085;          // ring radius, outward
+    float N = 10.0 + fk * 4.0;            // links around this ring
+    float a = atan(p.y, p.x) + rot * (1.0 + fk * 0.06); // differential spin → swirl
+    float twoPi = 6.2831853;
+    float cellF = (a / twoPi) * N;
+    float i = floor(cellF);
+    float cellArc = (twoPi / N) * R;      // arc length of one link cell
+    float halfLen = cellArc * 0.62;       // >half → neighbours interlock
+
+    // Evaluate this cell and its two neighbours so links overlap cleanly.
+    for (int di = -1; di <= 1; di++) {
+      float idx = i + float(di);
+      float aLink = (idx + 0.5) / N * twoPi;   // link centre angle
+      vec2 q = vec2((a - aLink) * R, r - R);   // along-arc, radial
+      if (mod(idx, 2.0) > 0.5) q = q.yx;       // alternate 90° → interlock
+      float d = linkOutline(q, halfLen, 0.016, 0.006);
+      if (d < best) { best = d; bestIdx = idx + fk * 100.0; }
+    }
+  }
+
+  float edge = smoothstep(0.006, 0.0, best);     // crisp metal
+  float glow = exp(-max(best, 0.0) * 55.0);      // soft bloom
+  vec3 green = vec3(0.10, 1.0, 0.42);
+  // Alternate links shimmer slightly so the chain reads as discrete blocks.
+  float block = 0.85 + 0.15 * sin(bestIdx * 1.7);
+  vec3 c = green * (edge * 1.25 + glow * 0.55) * block;
+
+  // Carry the rain's pill tint so the chain matches the active pill.
+  if (u_pill > 0.5 && u_pill < 1.5) c = mix(c, c.gbr * vec3(1.0, 0.4, 0.3), 0.5); // red
+  else if (u_pill > 1.5) c = mix(c, c.brg, 0.5);                                  // blue
+  return c;
+}
+
 void main() {
   vec2 fc = gl_FragCoord.xy;
   vec2 res = u_resolution;
@@ -113,6 +169,15 @@ void main() {
   } else {
     // Normal: the classic matrix expression
     col = text(scaled) * rain(scaled);
+  }
+
+  // ── Blockchain chain ──
+  // The bullet-time drag and glitch-spin no longer just rotate the rain — the
+  // swirl resolves into a rotating chain of connected links. u_dragX carries
+  // the drag rotation, u_spin the glitch-spin; u_swirl cross-fades rain→chain.
+  if (u_swirl > 0.001) {
+    vec3 chain = chainSwirl(fc, res, u_spin + u_dragX);
+    col = mix(col * (1.0 - 0.6 * u_swirl), chain, clamp(u_swirl, 0.0, 1.0));
   }
 
   // Mouse glow — subtle cursor awareness

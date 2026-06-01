@@ -65,6 +65,7 @@ export function createRainRenderer(
   let contemplative = false;  // blue-pill slow mode
   let glitchUniform = 0.0;    // 0 = normal, >0 = glitch intensity
   let spinAngle = 0.0;        // 0..2π spin
+  let glitchSwirl = 0.0;      // 0..1 chain-swirl contributed by the glitch-spin
 
   // ── Mouse + bullet-time drag ──
   let mouseX = 0.5, mouseY = 0.5;
@@ -144,6 +145,12 @@ export function createRainRenderer(
     setUniform('u_breadth', breadthGreen);
     setUniform('u_glitch', glitchUniform);
     setUniform('u_spin', spinAngle);
+    // Swirl = how much the rotation reads as a blockchain chain. Driven by the
+    // glitch-spin and by live drag momentum (bullet-time), so flinging the rain
+    // coils it into a chain that unwinds as the momentum decays.
+    const dragMag = Math.min(1, (Math.abs(dragVelX) + Math.abs(dragVelY)) * 6);
+    const dragSwirl = isDragging ? Math.max(dragMag, 0.5) : dragMag;
+    setUniform('u_swirl', Math.max(glitchSwirl, dragSwirl));
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     for (const cb of frameCbs) cb(t);
@@ -166,6 +173,9 @@ export function createRainRenderer(
         : 1 - Math.pow(-2 * progress + 2, 2) / 2;
       spinAngle = eased * Math.PI * 2;
 
+      // Coil into a chain at mid-spin, unwind back to rain as it settles.
+      glitchSwirl = Math.sin(progress * Math.PI);
+
       if (elapsed >= glitchStart) {
         const glitchProgress = (elapsed - glitchStart) / glitchDuration;
         glitchUniform = glitchProgress < 0.5
@@ -180,6 +190,7 @@ export function createRainRenderer(
       } else {
         spinAngle = 0.0;
         glitchUniform = 0.0;
+        glitchSwirl = 0.0;
       }
     }
     requestAnimationFrame(animateSpin);

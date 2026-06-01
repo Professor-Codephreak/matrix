@@ -56,7 +56,7 @@ controls.innerHTML = `
   <label>Activity <b id="a-val">auto</b>
     <input id="a" type="range" min="0" max="1" step="0.02" value="0.15" />
   </label>
-  <div class="demo-hint">Click <b>MATRIX-FX</b> to open the pill choice. Drag the rain for bullet-time. Scroll to zoom.</div>
+  <div class="demo-hint">Click <b>MATRIX-FX</b> to open the pill choice. <b>Drag</b> the rain &mdash; the swirl coils into a <b>blockchain chain</b>. Scroll to zoom.</div>
 `;
 document.body.appendChild(controls);
 
