@@ -109,17 +109,18 @@ vec3 chainSwirl(vec2 fc, vec2 res, float rot) {
       float aLink = (idx + 0.5) / N * twoPi;   // link centre angle
       vec2 q = vec2((a - aLink) * R, r - R);   // along-arc, radial
       if (mod(idx, 2.0) > 0.5) q = q.yx;       // alternate 90° → interlock
-      float d = linkOutline(q, halfLen, 0.016, 0.006);
+      float d = linkOutline(q, halfLen, 0.024, 0.011);  // thicker metal → more visible
       if (d < best) { best = d; bestIdx = idx + fk * 100.0; }
     }
   }
 
-  float edge = smoothstep(0.006, 0.0, best);     // crisp metal
-  float glow = exp(-max(best, 0.0) * 55.0);      // soft bloom
-  vec3 green = vec3(0.10, 1.0, 0.42);
+  float edge = smoothstep(0.012, 0.0, best);     // crisp metal (wider, brighter)
+  float glow = exp(-max(best, 0.0) * 38.0);      // softer, broader bloom
+  vec3 green = vec3(0.20, 1.0, 0.55);            // brighter matrix green
   // Alternate links shimmer slightly so the chain reads as discrete blocks.
-  float block = 0.85 + 0.15 * sin(bestIdx * 1.7);
-  vec3 c = green * (edge * 1.25 + glow * 0.55) * block;
+  float block = 0.88 + 0.12 * sin(bestIdx * 1.7);
+  vec3 c = green * (edge * 2.0 + glow * 1.1) * block;
+  c += vec3(0.55, 1.0, 0.7) * edge * 0.6;        // white-hot core on the metal
 
   // Carry the rain's pill tint so the chain matches the active pill.
   if (u_pill > 0.5 && u_pill < 1.5) c = mix(c, c.gbr * vec3(1.0, 0.4, 0.3), 0.5); // red
@@ -177,7 +178,9 @@ void main() {
   // the drag rotation, u_spin the glitch-spin; u_swirl cross-fades rain→chain.
   if (u_swirl > 0.001) {
     vec3 chain = chainSwirl(fc, res, u_spin + u_dragX);
-    col = mix(col * (1.0 - 0.6 * u_swirl), chain, clamp(u_swirl, 0.0, 1.0));
+    // Dim the rain hard under the swirl, then add the chain on top so the
+    // links stay bright even at partial swirl.
+    col = col * (1.0 - 0.85 * u_swirl) + chain * clamp(u_swirl, 0.0, 1.0);
   }
 
   // Mouse glow — subtle cursor awareness
