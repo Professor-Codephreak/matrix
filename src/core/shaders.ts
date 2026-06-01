@@ -173,14 +173,14 @@ void main() {
   }
 
   // ── Blockchain chain ──
-  // The bullet-time drag and glitch-spin no longer just rotate the rain — the
-  // swirl resolves into a rotating chain of connected links. u_dragX carries
-  // the drag rotation, u_spin the glitch-spin; u_swirl cross-fades rain→chain.
-  if (u_swirl > 0.001) {
-    vec3 chain = chainSwirl(fc, res, u_spin + u_dragX);
-    // Dim the rain hard under the swirl, then add the chain on top so the
-    // links stay bright even at partial swirl.
-    col = col * (1.0 - 0.85 * u_swirl) + chain * clamp(u_swirl, 0.0, 1.0);
+  // The chain is always present — a slowly-turning blockchain backbone layered
+  // over the rain. The bullet-time drag (u_dragX) and glitch-spin (u_spin) wind
+  // it faster and brighter; u_swirl ramps intensity and dims the rain beneath.
+  {
+    float rot = u_spin + u_dragX + u_time * 0.04;  // slow idle drift + interaction
+    vec3 chain = chainSwirl(fc, res, rot);
+    float vis = max(0.40, clamp(u_swirl, 0.0, 1.0)); // never below 40% — always visible
+    col = col * (1.0 - 0.85 * u_swirl) + chain * vis;
   }
 
   // Mouse glow — subtle cursor awareness
