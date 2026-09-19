@@ -44,6 +44,14 @@ export interface MarketDataSource {
   formatPrice(usd: number): string;
   /** Format a market cap / large USD figure for display. */
   formatMarketCap(cap: number): string;
+  /** Optional: external links shown on a coin's hover card. A source returns
+   *  links into its own provider (e.g. CMC chart pages). When omitted, the
+   *  module falls back to CoinGecko links keyed by `coin.id`. */
+  links?(coin: CoinPrice): Array<{ label: string; href: string }>;
+  /** Optional: total stablecoin liquidity in USD for the ship's flag — e.g. a
+   *  DeFiLlama aggregate across all stablecoins. When omitted, or it resolves
+   *  to null, the ship sums the stablecoins it can see. */
+  stablecoinLiquidity?(): Promise<number | null>;
 }
 
 /**

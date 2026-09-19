@@ -138,6 +138,34 @@ export function createCmcMarketSource(opts: CmcSourceOptions = {}): CmcMarket {
     breadth,
     formatPrice,
     formatMarketCap,
+    links(coin) {
+      // The coin id is the CMC slug, so this resolves to the asset's CoinMarketCap
+      // page (interactive chart). Two entries to match the card's link layout.
+      const page = `https://coinmarketcap.com/currencies/${coin.id}/`;
+      return [
+        { label: 'CoinMarketCap', href: page },
+        { label: 'Chart', href: page },
+      ];
+    },
+    async stablecoinLiquidity() {
+      // DeFiLlama's market-wide stablecoin total (all pegged assets), not just
+      // the stablecoins in the CMC listing window. CORS-open, so the configured
+      // fetch works in both the browser and Tauri.
+      try {
+        const res = await doFetch('https://stablecoins.llama.fi/stablecoins?includePrices=true', { headers: { Accept: 'application/json' } });
+        if (!res.ok) return null;
+        const body = await res.json() as { peggedAssets?: Array<{ circulating?: { peggedUSD?: number } | null }> };
+        const rows = Array.isArray(body.peggedAssets) ? body.peggedAssets : [];
+        let total = 0;
+        for (const s of rows) {
+          const v = s.circulating && typeof s.circulating.peggedUSD === 'number' ? s.circulating.peggedUSD : 0;
+          if (v > 0) total += v;
+        }
+        return total > 0 ? total : null;
+      } catch {
+        return null;
+      }
+    },
   };
 
   return {

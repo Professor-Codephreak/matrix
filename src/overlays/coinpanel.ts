@@ -24,6 +24,13 @@ export function createCoinPanel(tooltip: HTMLElement, market: MarketDataSource):
     const sign = isUp ? '+' : '';
     const color = isUp ? '#10b981' : '#ef4444';
 
+    // Links come from the source when it provides them (e.g. CMC chart pages),
+    // otherwise fall back to CoinGecko keyed by the coin id.
+    const links = market.links?.(coin) ?? [
+      { label: 'CoinGecko', href: `https://www.coingecko.com/en/coins/${coin.id}` },
+      { label: 'Chart', href: `https://www.coingecko.com/en/coins/${coin.id}#panel` },
+    ];
+
     const panel = el('div', {
       cls: 'parsec-coinpanel',
       children: [
@@ -34,10 +41,9 @@ export function createCoinPanel(tooltip: HTMLElement, market: MarketDataSource):
         el('div', { cls: 'parsec-coinpanel__price', text: market.formatPrice(coin.usd) }),
         el('div', { cls: 'parsec-coinpanel__change', text: `${sign}${coin.change24h.toFixed(2)}%`, attrs: { style: `color:${color}` } }),
         el('div', { cls: 'parsec-coinpanel__cap', text: `Market Cap: ${market.formatMarketCap(coin.marketCap)}` }),
-        el('div', { cls: 'parsec-coinpanel__links', children: [
-          el('a', { text: 'CoinGecko', cls: 'parsec-asset-link', attrs: { href: `https://www.coingecko.com/en/coins/${coin.id}`, target: '_blank', rel: 'noopener' } }),
-          el('a', { text: 'Chart', cls: 'parsec-asset-link', attrs: { href: `https://www.coingecko.com/en/coins/${coin.id}#panel`, target: '_blank', rel: 'noopener' } }),
-        ]}),
+        el('div', { cls: 'parsec-coinpanel__links', children: links.map(l =>
+          el('a', { text: l.label, cls: 'parsec-asset-link', attrs: { href: l.href, target: '_blank', rel: 'noopener' } }),
+        )}),
       ],
     });
 

@@ -15,26 +15,39 @@ export function renderShip(ctx: OverlayCtx, prices: CoinPrice[]) {
   const stables = prices.filter(c => STABLE_NAMES.has(c.symbol));
   if (stables.length === 0) return;
 
-  const totalLiquidity = stables.reduce((s, c) => s + c.marketCap, 0);
+  // Visible total — the stablecoins actually on deck. Cargo widths are shares
+  // of this. The flag prefers a market-wide DeFiLlama aggregate when the source
+  // offers one (filled in async below), since that captures stablecoins beyond
+  // the ones the feed surfaces.
+  const visibleTotal = stables.reduce((s, c) => s + c.marketCap, 0);
 
   const ship = el('div', { cls: 'parsec-ship' });
   const hull = el('div', { cls: 'parsec-ship__hull' });
 
   // Mast — total liquidity display
+  const flag = el('div', { cls: 'parsec-ship__flag', text: market.formatMarketCap(visibleTotal) });
   hull.appendChild(el('div', {
     cls: 'parsec-ship__mast',
     children: [
-      el('div', { cls: 'parsec-ship__flag', text: market.formatMarketCap(totalLiquidity) }),
+      flag,
       el('div', { cls: 'parsec-ship__flag-label', text: 'STABLECOIN LIQUIDITY' }),
     ],
   }));
+
+  // Upgrade the flag to the source's market-wide total (e.g. DeFiLlama) when
+  // available. Best-effort: keep the visible sum if it fails or returns null.
+  if (market.stablecoinLiquidity) {
+    market.stablecoinLiquidity()
+      .then((total) => { if (total && total > 0) flag.textContent = market.formatMarketCap(total); })
+      .catch(() => { /* keep the visible sum */ });
+  }
 
   // Deck — stablecoins as cargo
   const deck = el('div', { cls: 'parsec-ship__deck' });
   stables.sort((a, b) => b.marketCap - a.marketCap);
   stables.forEach(coin => {
     const isGold = coin.symbol === 'PAXG' || coin.symbol === 'XAUT';
-    const share = coin.marketCap / totalLiquidity;
+    const share = coin.marketCap / visibleTotal;
     const widthPct = Math.max(4, Math.round(share * 100));
 
     deck.appendChild(el('div', {
