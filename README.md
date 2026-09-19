@@ -35,6 +35,41 @@ document.body.appendChild(element);
 
 See `src/types.ts` for the full config contract.
 
+## The `MarketDataSource` contract
+
+The one interface a host must implement — seven required members, two optional:
+
+| member | | |
+|---|---|---|
+| `subscribe(onUpdate)` | required | price updates; returns an unsubscribe fn |
+| `fetchByIds(ids)` | required | specific rows, for the favourites strip |
+| `activity(prices)` | required | 0..1 — drives rain speed |
+| `sentiment(prices)` | required | -1..+1 — colours the rain bear/bull |
+| `breadth(prices)` | required | green/red/flat — feeds the shader's breadth uniform |
+| `formatPrice(usd)` | required | a price as the host would print it |
+| `formatMarketCap(cap)` | required | a large USD figure as the host would print it |
+| `links?(coin)` | optional | external links for a coin's hover card |
+| `stablecoinLiquidity?()` | optional | a market-wide stablecoin total for the ship's flag |
+
+The two optional members exist because the overlays otherwise guess, and guessed
+wrong for any feed that is not CoinGecko:
+
+**`links?(coin)`** — the hover card used to build CoinGecko URLs from `coin.id`
+unconditionally. Under a CoinMarketCap feed that id is a CMC slug, so every link
+pointed at a page that does not exist. Return your provider's own destinations, or
+omit it and keep the CoinGecko fallback.
+
+**`stablecoinLiquidity?()`** — the ship's flag reads `STABLECOIN LIQUIDITY`, but
+without this it can only sum the stablecoins in the current listing window, which
+understates the market by everything below the cut. Return a real aggregate (the
+bundled CMC source uses DeFiLlama's `peggedUSD` across all pegged assets) and the
+flag upgrades to it asynchronously; return `null`, or omit it, and the visible sum
+stands.
+
+Cargo widths on the deck keep using the visible total either way — they are shares
+of what is on deck, and dividing them by a market-wide figure would shrink every
+crate to nothing.
+
 ## Demo
 
 ```bash
@@ -64,12 +99,16 @@ src/
 Want just the rain background? Import `createRainRenderer` from `core/renderer`
 and skip the overlays and shell entirely.
 
-## Lifting to its own repo
+## Where this lives
 
-The module has no host dependencies (`grep -r store\|keystore\|algorand src/`
-returns nothing) and no runtime npm dependencies. To publish it standalone:
-move `matrix-fx/` out, `git init`, set a real package name, and update consumers
-to import the package name instead of the in-repo path alias.
+This repository is the module's home. It has no host dependencies
+(`grep -r store\|keystore\|algorand src/` returns nothing) and no runtime npm
+dependencies, so it can be consumed by path alias, workspace, or a plain copy.
+
+Parsec Wallet consumes it as a **git submodule** at `matrix-fx/`. Clone the
+superproject with `--recurse-submodules`, or run `git submodule update --init` in
+an existing checkout. A host pins a commit deliberately: new work here does not
+reach a consumer until that consumer bumps its pin.
 
 ## License
 
